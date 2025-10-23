@@ -9,6 +9,7 @@
 *.json
 *.csv#
 *.csv
+*.php
 *.xml
 *.tmp
 env/

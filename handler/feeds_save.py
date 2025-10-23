@@ -1,4 +1,5 @@
 import logging
+import re
 import xml.etree.ElementTree as ET
 
 import requests
@@ -58,25 +59,38 @@ class FeedSave(FileMixin):
         """Защищенный метод, формирующий имя xml-файлу."""
         return feed.split('/')[-1]
 
-    def _validate_xml(self, xml_content: bytes) -> str:
+    def _validate_xml(self, xml_content: bytes):
         """
         Валидирует XML.
-        Возвращает декодированное содержимое.
+        Возвращает декодированное содержимое и кодировку.
         """
         if not xml_content.strip():
-            logging.error('Получен пустой XML-файл')
             raise EmptyXMLError('XML пуст')
+        encoding = 'utf-8'
         try:
-            decoded_content = xml_content.decode(ENCODING)
+            declaration = xml_content[:100].decode('ascii', errors='ignore')
+            if 'encoding=' in declaration:
+                match = re.search(r'encoding=[\'"]([^\'"]+)[\'"]', declaration)
+                if match:
+                    encoding = match.group(1).lower()
+        except Exception as error:
+            logging.warning(
+                'Не удалось определить кодировку из декларации: %s',
+                error
+            )
+        try:
+            decoded_content = xml_content.decode(encoding)
         except UnicodeDecodeError:
-            logging.error('Ошибка декодирования XML-файла')
-            raise
+            try:
+                decoded_content = xml_content.decode('utf-8')
+                encoding = 'utf-8'
+            except UnicodeDecodeError:
+                raise InvalidXMLError('Не удалось декодировать XML')
         try:
             ET.fromstring(decoded_content)
         except ET.ParseError as e:
-            logging.error('XML-файл содержит синтаксические ошибки')
             raise InvalidXMLError(f'XML содержит синтаксические ошибки: {e}')
-        return decoded_content
+        return decoded_content, encoding
 
     @time_of_function
     def save_xml(self) -> None:
@@ -93,12 +107,12 @@ class FeedSave(FileMixin):
                 continue
             try:
                 xml_content = response.content
-                decoded_content = self._validate_xml(xml_content)
+                decoded_content, encoding = self._validate_xml(xml_content)
                 xml_tree = ET.fromstring(decoded_content)
                 self._indent(xml_tree)
                 tree = ET.ElementTree(xml_tree)
                 with open(file_path, 'wb') as file:
-                    tree.write(file, encoding=ENCODING, xml_declaration=True)
+                    tree.write(file, encoding=encoding, xml_declaration=True)
                 saved_files += 1
                 logging.info('Файл %s успешно сохранен', file_name)
             except (EmptyXMLError, InvalidXMLError) as error:

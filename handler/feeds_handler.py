@@ -1,9 +1,11 @@
+import json
 import logging
+import re
 import xml.etree.ElementTree as ET
 
 import requests
 
-from handler.constants import (FEEDS_FOLDER, NEW_FEEDS_FOLDER)
+from handler.constants import FEEDS_FOLDER, NEW_FEEDS_FOLDER
 from handler.custom_labels import CUSTOM_LABELS
 from handler.decorators import time_of_function
 from handler.logging_config import setup_logging
@@ -45,13 +47,24 @@ class FeedHandler(FileMixin):
         ) as f:
             f.write(formatted_xml)
 
+    def _validate(self):
+        pass
+
+    def _add_name_cl_file(self, text):
+        """Защищенный метод, дает имя файла custom_label."""
+        try:
+            return 'new.json' if 'new' in text else 'top.json'
+        except Exception as error:
+            logging.error('Неожиданная ошибка определения имени: %s', error)
+            return ''
+
     def _get_custom_labels(self, label):
         """Защищенный метод, получает custom_label по ссылке."""
         try:
             response = requests.get(label, stream=True, timeout=(10, 60))
 
             if response.status_code == requests.codes.ok:
-                return response.content
+                return response.text
             else:
                 logging.error(
                     'HTTP ошибка %s при загрузке %s',
@@ -59,10 +72,32 @@ class FeedHandler(FileMixin):
                     label
                 )
                 return None
-
         except requests.RequestException as error:
             logging.error('Ошибка при загрузке %s: %s', label, error)
             return None
+        except Exception as error:
+            logging.error('Неожиданная ошибка: %s', error)
+            return None
+
+    def _save_custom_label(self, filename, custom_label):
+        """Защищенный метод, сохраняет файл custom_label."""
+        try:
+            folder_path = self._make_dir('custom_labels')
+            json_key = filename.split('.')[0]
+            with open(folder_path / filename, 'w', encoding='utf-8') as f:
+                json.dump({json_key: custom_label}, f, indent=2)
+        except Exception as error:
+            logging.error('Неожиданная ошибка при сохранении: %s', error)
+
+    def _parse_custom_labels(self, text):
+        """Защищенный метод, парсит текст и извлекает данные."""
+        try:
+            matches = re.findall(r"'(\d+)'", text)
+            print(tuple(matches))
+            return tuple(matches)
+        except Exception as error:
+            logging.error('Ошибка парсинга данных: %s', error)
+            return ()
 
     @time_of_function
     def add_custom_label(self):

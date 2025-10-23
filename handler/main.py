@@ -1,5 +1,6 @@
 import logging
 
+from handler.custom_labels import CUSTOM_LABELS
 from handler.decorators import time_of_script
 from handler.feeds_handler import FeedHandler
 from handler.feeds_save import FeedSave
@@ -15,7 +16,11 @@ def main():
         handler_client = FeedHandler()
 
         save_client.save_xml()
-        handler_client.add_custom_label()
+        for label in CUSTOM_LABELS:
+            label = handler_client._get_custom_labels(label)
+            name_label = handler_client._add_name_cl_file(label)
+            parse_cl = handler_client._parse_custom_labels(label)
+            handler_client._save_custom_label(name_label, parse_cl)
     except Exception as error:
         logging.error('Неожиданная ошибка: %s', error)
         raise
