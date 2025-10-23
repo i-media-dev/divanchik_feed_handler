@@ -1,0 +1,11 @@
+services:
+  divanchik_feed_handler:
+    environment:
+      - TZ=Europe/Moscow
+    image: imediadev/divanchik_feed_handler
+    user: "1002:1002"
+    env_file: .env
+    volumes:
+      - ./logs:/app/logs
+      - ./${FEEDS_FOLDER}:/app/${FEEDS_FOLDER}
+      - /home/main_ftp_user/projects/divanchik/${NEW_FEEDS_FOLDER}:/app/${NEW_FEEDS_FOLDER}
