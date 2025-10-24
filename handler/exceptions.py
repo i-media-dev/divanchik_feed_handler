@@ -22,14 +22,6 @@ class GetTreeError(ValueError):
     """Ошибка получения дерева XML-файла."""
 
 
-class SaveDataBaseError(ValueError):
-    """Ошибка сохранения данных в бд."""
-
-
-class CleanDataBaseError(ValueError):
-    """Ошибка удаления данных из бд."""
-
-
 class StructureXMLError(ValueError):
     """Ошибка структуры XML-файла."""
 
@@ -40,3 +32,7 @@ class MissingFolderError(Exception):
 
 class ValidationLabelError(Exception):
     """Ошибка валидации custom_label."""
+
+
+class EmptyLabelTupleError(ValueError):
+    """Ошибка пустой коллекции с custom_label."""

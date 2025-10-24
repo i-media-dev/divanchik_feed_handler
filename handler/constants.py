@@ -4,6 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+TAG_NAME = {
+    'new': 'custom_label_1',
+    'top': 'custom_label_2'
+}
+"""Название тега в зависимости от названия файла."""
+
 DATE_FORMAT = '%Y-%m-%d'
 """Формат даты по умолчанию."""
 

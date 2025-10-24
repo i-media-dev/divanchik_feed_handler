@@ -1,15 +1,17 @@
-import json
 import logging
 import re
 import xml.etree.ElementTree as ET
 
 import requests
 
-from handler.constants import FEEDS_FOLDER, NEW_FEEDS_FOLDER
+from custom_labels.new import NEW
+from custom_labels.top import TOP
+from handler.constants import FEEDS_FOLDER, NEW_FEEDS_FOLDER, TAG_NAME
 from handler.custom_labels import CUSTOM_LABELS
 from handler.decorators import time_of_function
 from handler.logging_config import setup_logging
 from handler.mixins import FileMixin
+from handler.exceptions import EmptyLabelTupleError, ValidationLabelError
 
 setup_logging()
 
@@ -22,46 +24,54 @@ class FeedHandler(FileMixin):
 
     def __init__(
         self,
+        filename: str,
+        custom_label_url: str,
         feeds_folder: str = FEEDS_FOLDER,
         new_feeds_folder: str = NEW_FEEDS_FOLDER
     ) -> None:
+        self.filename = filename
+        self.custom_label_url = custom_label_url
         self.feeds_folder = feeds_folder
         self.new_feeds_folder = new_feeds_folder
+
+    def __repr__(self):
+        return (
+            f"FeedHandler(filename = '{self.filename}', "
+            f"custom_label_url='{self.custom_label_url}', "
+            f"feeds_folder='{self.feeds_folder}', "
+            f"new_feeds_folder='{self.new_feeds_folder}')"
+        )
 
     def _save_xml(
         self,
         elem,
         file_folder: str,
         filename: str,
-        prefix='new_'
+        prefix: str = 'new_'
     ) -> None:
         """Защищенный метод, сохраняет отформатированные файлы."""
         root = elem
         self._indent(root)
-        formatted_xml = ET.tostring(root, encoding='unicode')
+        formatted_xml = ET.tostring(root, encoding='windows-1251')
         file_path = self._make_dir(file_folder)
         with open(
             file_path / f'{prefix}{filename}',
-            'w',
-            encoding='utf-8'
+            'wb'
         ) as f:
             f.write(formatted_xml)
 
-    def _validate(self):
-        pass
-
-    def _add_name_cl_file(self, text):
+    def _add_name_lable_file(self, label_text):
         """Защищенный метод, дает имя файла custom_label."""
         try:
-            return 'new.json' if 'new' in text else 'top.json'
+            return 'new.py' if 'new' in label_text else 'top.py'
         except Exception as error:
             logging.error('Неожиданная ошибка определения имени: %s', error)
             return ''
 
-    def _get_custom_labels(self, label):
+    def _get_custom_labels(self, label_url):
         """Защищенный метод, получает custom_label по ссылке."""
         try:
-            response = requests.get(label, stream=True, timeout=(10, 60))
+            response = requests.get(label_url, stream=True, timeout=(10, 60))
 
             if response.status_code == requests.codes.ok:
                 return response.text
@@ -69,11 +79,11 @@ class FeedHandler(FileMixin):
                 logging.error(
                     'HTTP ошибка %s при загрузке %s',
                     response.status_code,
-                    label
+                    label_url
                 )
                 return None
         except requests.RequestException as error:
-            logging.error('Ошибка при загрузке %s: %s', label, error)
+            logging.error('Ошибка при загрузке %s: %s', label_url, error)
             return None
         except Exception as error:
             logging.error('Неожиданная ошибка: %s', error)
@@ -83,37 +93,97 @@ class FeedHandler(FileMixin):
         """Защищенный метод, сохраняет файл custom_label."""
         try:
             folder_path = self._make_dir('custom_labels')
-            json_key = filename.split('.')[0]
             with open(folder_path / filename, 'w', encoding='utf-8') as f:
-                json.dump({json_key: custom_label}, f, indent=2)
+                f.write(f'{filename.split('.')[0].upper()} = {custom_label}\n')
         except Exception as error:
             logging.error('Неожиданная ошибка при сохранении: %s', error)
 
-    def _parse_custom_labels(self, text):
+    def _validate(self, custom_label: tuple):
+        """Защищенный метод валидации кортежа."""
+        if not custom_label:
+            raise EmptyLabelTupleError('Кортеж айдишников пуст')
+
+        total_length = sum(len(str(item)) for item in custom_label)
+        avg_length = total_length // len(custom_label)
+
+        suspicious_items = []
+        for item in custom_label:
+            item_length = len(str(item))
+            if item_length > avg_length * 2:
+                suspicious_items.append((item, item_length, avg_length))
+
+        if suspicious_items:
+            logging.warning(
+                'Обнаружены подозрительно длинные элементы: %s',
+                suspicious_items
+            )
+            raise ValidationLabelError(
+                f'Большая вероятность пропущенной запятой: {suspicious_items}'
+            )
+
+    def _parse_custom_labels(self, label_text):
         """Защищенный метод, парсит текст и извлекает данные."""
         try:
-            matches = re.findall(r"'(\d+)'", text)
-            print(tuple(matches))
+            matches = re.findall(r"'(\d+)'", label_text)
             return tuple(matches)
         except Exception as error:
             logging.error('Ошибка парсинга данных: %s', error)
             return ()
 
+    def _paste_custom_label(
+        self,
+        custom_label: tuple,
+        text_tag: str,
+        name_tag: str
+    ):
+        tree = self._get_tree(self.filename, self.feeds_folder)
+        root = tree.getroot()
+        offers = list(root.findall('.//offer'))
+
+        for offer in offers:
+            offer_id = str(offer.get('id'))
+            custom_label_tag = ET.SubElement(
+                offer,
+                name_tag
+            )
+            if offer_id in custom_label:
+                custom_label_tag.text = text_tag.capitalize()
+            else:
+                custom_label_tag.text = 'all'
+        self._save_xml(
+            root,
+            self.new_feeds_folder,
+            self.filename, f'{text_tag}_'
+        )
+
     @time_of_function
     def add_custom_label(self):
-
+        """Метод добавления custom_label в оффер."""
+        label_text = self._get_custom_labels(self.custom_label_url)
+        name_label = self._add_name_lable_file(label_text)
         try:
-            filenames = self._get_filenames_set(self.feeds_folder)
-
-            for filename in filenames:
-                tree = self._get_tree(filename, self.feeds_folder)
-                root = tree.getroot()
-                offers = list(root.findall('.//offer'))
-
-                for offer in offers:
-                    offer_id = str(offer.get('id'))
-
-                self._save_xml(root, self.new_feeds_folder, filename)
-
+            parse_label = ()
+            try:
+                if name_label and label_text:
+                    parse_label = self._parse_custom_labels(label_text)
+                    self._validate(parse_label)
+                    self._save_custom_label(name_label, parse_label)
+            except EmptyLabelTupleError as error:
+                logging.warning(
+                    'Получен пустой кортеж custom_label: %s',
+                    error
+                )
+            except ValidationLabelError as error:
+                logging.warning('Ошибка в полученных данных: %s', error)
+            except Exception as error:
+                logging.error('Неожиданная ошибка валидации: %s', error)
+                raise
+            text_tag = name_label.split('.')[0]
+            name_tag = TAG_NAME[text_tag]
+            if not parse_label:
+                parse_label = NEW if text_tag == 'new' else TOP
+                logging.info('Используем резервные данные для %s', text_tag)
+            self._paste_custom_label(parse_label, text_tag, name_tag)
         except Exception as error:
             logging.error('Неожиданная ошибка: %s', error)
+            raise
