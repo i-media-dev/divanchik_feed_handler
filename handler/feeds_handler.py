@@ -6,8 +6,8 @@ import requests
 
 from custom_labels.new import NEW
 from custom_labels.top import TOP
-from handler.constants import FEEDS_FOLDER, NEW_FEEDS_FOLDER, TAG_NAME
-from handler.custom_labels import CUSTOM_LABELS
+from handler.constants import (FEEDS_FOLDER, LABELS_FOLDER, NEW_FEEDS_FOLDER,
+                               TAG_NAME)
 from handler.decorators import time_of_function
 from handler.exceptions import EmptyLabelTupleError, ValidationLabelError
 from handler.logging_config import setup_logging
@@ -26,11 +26,13 @@ class FeedHandler(FileMixin):
         self,
         filename: str,
         custom_label_url: str,
+        labels_folder: str = LABELS_FOLDER,
         feeds_folder: str = FEEDS_FOLDER,
         new_feeds_folder: str = NEW_FEEDS_FOLDER
     ) -> None:
         self.filename = filename
         self.custom_label_url = custom_label_url
+        self.labels_folder = labels_folder
         self.feeds_folder = feeds_folder
         self.new_feeds_folder = new_feeds_folder
 
@@ -38,6 +40,7 @@ class FeedHandler(FileMixin):
         return (
             f"FeedHandler(filename = '{self.filename}', "
             f"custom_label_url='{self.custom_label_url}', "
+            f"labels_folder='{self.labels_folder}', "
             f"feeds_folder='{self.feeds_folder}', "
             f"new_feeds_folder='{self.new_feeds_folder}')"
         )
@@ -92,7 +95,7 @@ class FeedHandler(FileMixin):
     def _save_custom_label(self, filename, custom_label):
         """Защищенный метод, сохраняет файл custom_label."""
         try:
-            folder_path = self._make_dir('custom_labels')
+            folder_path = self._make_dir(self.labels_folder)
             with open(folder_path / filename, 'w', encoding='utf-8') as f:
                 f.write(f'{filename.split('.')[0].upper()} = {custom_label}\n')
         except Exception as error:

@@ -28,6 +28,9 @@ DOMEN_FTP = 'feeds.i-media.ru'
 NAME_OF_SHOP = 'divanchik'
 """Константа названия магазина."""
 
+LABELS_FOLDER = os.getenv('LABELS_FOLDER', 'custom_labels')
+"""Константа стокового названия директории с custon_label."""
+
 FEEDS_FOLDER = os.getenv('FEEDS_FOLDER', 'temp_feeds')
 """Константа стокового названия директории с фидами."""
 
