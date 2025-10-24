@@ -9,9 +9,9 @@ from custom_labels.top import TOP
 from handler.constants import FEEDS_FOLDER, NEW_FEEDS_FOLDER, TAG_NAME
 from handler.custom_labels import CUSTOM_LABELS
 from handler.decorators import time_of_function
+from handler.exceptions import EmptyLabelTupleError, ValidationLabelError
 from handler.logging_config import setup_logging
 from handler.mixins import FileMixin
-from handler.exceptions import EmptyLabelTupleError, ValidationLabelError
 
 setup_logging()
 

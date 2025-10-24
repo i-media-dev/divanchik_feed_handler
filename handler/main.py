@@ -1,7 +1,7 @@
 import logging
 
-from handler.custom_labels import CUSTOM_LABELS
 from handler.constants import FEEDS_FOLDER
+from handler.custom_labels import CUSTOM_LABELS
 from handler.decorators import time_of_script
 from handler.feeds_handler import FeedHandler
 from handler.feeds_save import FeedSave
