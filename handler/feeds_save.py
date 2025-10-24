@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import requests
 from dotenv import load_dotenv
 
-from handler.constants import ENCODING, FEEDS_FOLDER
+from handler.constants import FEEDS_FOLDER
 from handler.decorators import retry_on_network_error, time_of_function
 from handler.exceptions import (EmptyFeedsListError, EmptyXMLError,
                                 InvalidXMLError)
