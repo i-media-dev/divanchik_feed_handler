@@ -50,7 +50,6 @@ class FeedHandler(FileMixin):
         elem,
         file_folder: str,
         filename: str,
-        prefix: str = 'new_'
     ) -> None:
         """Защищенный метод, сохраняет отформатированные файлы."""
         root = elem
@@ -58,12 +57,12 @@ class FeedHandler(FileMixin):
         formatted_xml = ET.tostring(root, encoding='windows-1251')
         file_path = self._make_dir(file_folder)
         with open(
-            file_path / f'{prefix}{filename}',
+            file_path / f'{filename}',
             'wb'
         ) as f:
             f.write(formatted_xml)
 
-    def _add_name_lable_file(self, label_text):
+    def _add_name_lable_file(self, label_text) -> str:
         """Защищенный метод, дает имя файла custom_label."""
         try:
             return 'new.py' if 'new' in label_text else 'top.py'
@@ -71,7 +70,7 @@ class FeedHandler(FileMixin):
             logging.error('Неожиданная ошибка определения имени: %s', error)
             return ''
 
-    def _get_custom_labels(self, label_url):
+    def _get_custom_labels(self, label_url: str) -> str | None:
         """Защищенный метод, получает custom_label по ссылке."""
         try:
             response = requests.get(label_url, stream=True, timeout=(10, 60))
@@ -92,7 +91,7 @@ class FeedHandler(FileMixin):
             logging.error('Неожиданная ошибка: %s', error)
             return None
 
-    def _save_custom_label(self, filename, custom_label):
+    def _save_custom_label(self, filename: str, custom_label: tuple) -> None:
         """Защищенный метод, сохраняет файл custom_label."""
         try:
             folder_path = self._make_dir(self.labels_folder)
@@ -124,7 +123,7 @@ class FeedHandler(FileMixin):
                 f'Большая вероятность пропущенной запятой: {suspicious_items}'
             )
 
-    def _parse_custom_labels(self, label_text):
+    def _parse_custom_labels(self, label_text: str) -> tuple:
         """Защищенный метод, парсит текст и извлекает данные."""
         try:
             matches = re.findall(r"'(\d+)'", label_text)
@@ -138,7 +137,8 @@ class FeedHandler(FileMixin):
         custom_label: tuple,
         text_tag: str,
         name_tag: str
-    ):
+    ) -> None:
+        """Защищенный метод, вставляет валидные теги в файл."""
         tree = self._get_tree(self.filename, self.feeds_folder)
         root = tree.getroot()
         offers = list(root.findall('.//offer'))
@@ -156,12 +156,15 @@ class FeedHandler(FileMixin):
         self._save_xml(
             root,
             self.new_feeds_folder,
-            self.filename, f'{text_tag}_'
+            self.filename
         )
 
     @time_of_function
-    def add_custom_label(self):
-        """Метод добавления custom_label в оффер."""
+    def add_custom_label(self) -> None:
+        """
+        Метод добавления нового custom_label в оффер,
+        если он валиден, в противном случае - берет крайний валидный вариант.
+        """
         label_text = self._get_custom_labels(self.custom_label_url)
         name_label = self._add_name_lable_file(label_text)
         try:
@@ -180,7 +183,7 @@ class FeedHandler(FileMixin):
                 logging.warning('Ошибка в полученных данных: %s', error)
             except Exception as error:
                 logging.error('Неожиданная ошибка валидации: %s', error)
-                raise
+
             text_tag = name_label.split('.')[0]
             name_tag = TAG_NAME[text_tag]
             if not parse_label:
@@ -188,5 +191,8 @@ class FeedHandler(FileMixin):
                 logging.info('Используем резервные данные для %s', text_tag)
             self._paste_custom_label(parse_label, text_tag, name_tag)
         except Exception as error:
-            logging.error('Неожиданная ошибка: %s', error)
+            logging.error(
+                'Неожиданная ошибка добавления custom_label: %s',
+                error
+            )
             raise
