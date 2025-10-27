@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import requests
 from dotenv import load_dotenv
 
-from handler.constants import FEEDS_FOLDER
+from handler.constants import ENCODING, FEEDS_FOLDER
 from handler.decorators import retry_on_network_error, time_of_function
 from handler.exceptions import (EmptyFeedsListError, EmptyXMLError,
                                 InvalidXMLError)
@@ -61,36 +61,28 @@ class FeedSave(FileMixin):
 
     def _validate_xml(self, xml_content: bytes):
         """
-        Валидирует XML.
-        Возвращает декодированное содержимое и кодировку.
+        Валидирует фид.
+        Возвращает декодированное содержимое.
         """
         if not xml_content.strip():
             raise EmptyXMLError('XML пуст')
-        encoding = 'utf-8'
-        try:
-            declaration = xml_content[:100].decode('ascii', errors='ignore')
-            if 'encoding=' in declaration:
-                match = re.search(r'encoding=[\'"]([^\'"]+)[\'"]', declaration)
-                if match:
-                    encoding = match.group(1).lower()
-        except Exception as error:
-            logging.warning(
-                'Не удалось определить кодировку из декларации: %s',
-                error
-            )
+        encoding = ENCODING
         try:
             decoded_content = xml_content.decode(encoding)
-        except UnicodeDecodeError:
-            try:
-                decoded_content = xml_content.decode('utf-8')
-                encoding = 'utf-8'
-            except UnicodeDecodeError:
-                raise InvalidXMLError('Не удалось декодировать XML')
+        except UnicodeDecodeError as error:
+            logging.error('Не удалось декодировать фид: %s', error)
+            raise InvalidXMLError('Не удалось декодировать фид')
         try:
             ET.fromstring(decoded_content)
-        except ET.ParseError as e:
-            raise InvalidXMLError(f'XML содержит синтаксические ошибки: {e}')
-        return decoded_content, encoding
+        except ET.ParseError as error:
+            logging.error(
+                'Фид содержит синтаксические ошибки: %s',
+                error
+            )
+            raise InvalidXMLError(
+                f'фид содержит синтаксические ошибки: {error}'
+            )
+        return decoded_content
 
     @time_of_function
     def save_xml(self) -> None:
@@ -107,12 +99,12 @@ class FeedSave(FileMixin):
                 continue
             try:
                 xml_content = response.content
-                decoded_content, encoding = self._validate_xml(xml_content)
+                decoded_content = self._validate_xml(xml_content)
                 xml_tree = ET.fromstring(decoded_content)
                 self._indent(xml_tree)
                 tree = ET.ElementTree(xml_tree)
                 with open(file_path, 'wb') as file:
-                    tree.write(file, encoding=encoding, xml_declaration=True)
+                    tree.write(file, encoding=ENCODING, xml_declaration=True)
                 saved_files += 1
                 logging.info('Файл %s успешно сохранен', file_name)
             except (EmptyXMLError, InvalidXMLError) as error:

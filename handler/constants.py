@@ -37,5 +37,5 @@ FEEDS_FOLDER = os.getenv('FEEDS_FOLDER', 'temp_feeds')
 NEW_FEEDS_FOLDER = os.getenv('NEW_FEEDS_FOLDER', 'new_feeds')
 """Константа стокового названия директории с измененными фидами."""
 
-ENCODING = 'utf-8'
+ENCODING = 'windows-1251'
 """Кодировка по умолчанию."""
