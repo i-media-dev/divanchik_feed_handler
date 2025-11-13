@@ -43,6 +43,7 @@ class FeedSave(FileMixin):
             logging.info(f'Статус ответа: {response.status_code}')
             logging.info(f'Размер контента: {len(response.content)} байт')
             logging.info(f'Заголовки: {dict(response.headers)}')
+            logging.info(f'Первые байты ответа: {response.content[:300]}')
 
             if response.status_code == requests.codes.ok:
                 return response
