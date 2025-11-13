@@ -40,6 +40,10 @@ class FeedSave(FileMixin):
         try:
             response = requests.get(feed, stream=True, timeout=(10, 60))
 
+            logging.info(f'Статус ответа: {response.status_code}')
+            logging.info(f'Размер контента: {len(response.content)} байт')
+            logging.info(f'Заголовки: {dict(response.headers)}')
+
             if response.status_code == requests.codes.ok:
                 return response
             else:
