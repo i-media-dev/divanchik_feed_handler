@@ -21,7 +21,7 @@ class FileMixin:
         """Защищенный метод, создает директорию."""
         try:
             file_path = Path(__file__).parent.parent / folder_name
-            logging.debug('Путь к файлу: %s', file_path)
+            # logging.debug('Путь к файлу: %s', file_path)
             file_path.mkdir(parents=True, exist_ok=True)
             return file_path
         except Exception as error:
@@ -34,7 +34,7 @@ class FileMixin:
             file_path = (
                 Path(__file__).parent.parent / folder_name / file_name
             )
-            logging.debug('Путь к файлу: %s', file_path)
+            # logging.debug('Путь к файлу: %s', file_path)
             return ET.parse(file_path)
         except Exception as error:
             logging.error(

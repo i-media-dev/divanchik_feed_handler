@@ -7,6 +7,6 @@ services:
     env_file: .env
     volumes:
       - ./logs:/app/logs
-      - ./${FEEDS_FOLDER}:/app/${FEEDS_FOLDER}
+      - /home/main_ftp_user/projects/divanchik/${FEEDS_FOLDER}:/app/${FEEDS_FOLDER}
       - /home/main_ftp_user/projects/divanchik/${NEW_FEEDS_FOLDER}:/app/${NEW_FEEDS_FOLDER}
       - ./${LABELS_FOLDER}:/app/${LABELS_FOLDER}

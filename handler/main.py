@@ -19,10 +19,9 @@ def main():
         filenames = get_filenames_set(FEEDS_FOLDER)
 
         for filename in filenames:
-            for custom_label in CUSTOM_LABELS:
-                handler_client = FeedHandler(filename, custom_label)
-                print(handler_client)
-                handler_client.add_custom_label()
+            handler_client = FeedHandler(filename, CUSTOM_LABELS)
+            print(handler_client)
+            handler_client.add_custom_label()
 
     except Exception as error:
         logging.error('Неожиданная ошибка: %s', error)
