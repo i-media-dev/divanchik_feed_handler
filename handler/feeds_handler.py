@@ -14,6 +14,7 @@ from handler.logging_config import setup_logging
 from handler.mixins import FileMixin
 
 setup_logging()
+logger = logging.getLogger(__name__)
 
 
 class FeedHandler(FileMixin):
@@ -167,7 +168,7 @@ class FeedHandler(FileMixin):
         tree = self._get_tree(self.filename, self.feeds_folder)
         root = tree.getroot()
         offers = list(root.findall('.//offer'))
-        logging.info(
+        logger.bot_event(
             'Количество офферов в исходном фиде %s - %s',
             self.filename,
             len(offers)
@@ -198,8 +199,12 @@ class FeedHandler(FileMixin):
                 name_tag = TAG_NAME[text_tag]
                 if not parse_label:
                     parse_label = NEW if text_tag == 'new' else TOP
-                    logging.info(
-                        'Используем резервные данные для %s', text_tag)
+                    logger.bot_event(
+                        'Входящий custom_label не прошел валидацию. '
+                        'Используем резервные данные для %s. '
+                        'Проверьте логи для более детальной информации.',
+                        text_tag
+                    )
                 self._paste_custom_label(
                     offers,
                     parse_label,
@@ -227,7 +232,7 @@ class FeedHandler(FileMixin):
         new_tree = self._get_tree(self.filename, self.new_feeds_folder)
         new_root = new_tree.getroot()
         new_offers = list(new_root.findall('.//offer'))
-        logging.info(
+        logger.bot_event(
             'Количество офферов в измененном фиде - %s',
             len(new_offers)
         )
