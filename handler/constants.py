@@ -4,6 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ATTEMPTION_LOAD_FEED = 3
+"""Попытки для скачивания фида."""
+
+DELAY_FOR_RETRY = (5, 15, 30)
+"""Задержки перед переподключением."""
+
 TAG_NAME = {
     'new': 'custom_label_1',
     'top': 'custom_label_2'
